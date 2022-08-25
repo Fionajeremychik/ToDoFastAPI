@@ -26,6 +26,10 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 
+# @app.get("/")
+# async def create_database():
+#    return {"Database": "Created"}
+
 def get_db():
     try:
         db = SessionLocal()
@@ -36,21 +40,49 @@ def get_db():
 def get_password_hash(password):
     return bcrypt_context.hash(password)
 
-# def verify_password(plain_password, hashed_password):
-#     return bcrypt_context.verify(plain_password, hashed_password)
+@app.post("/create/user")
+async def create_new_user(create_user: CreateUser, db: Session = Depends(get_db)):
+    create_user_model = models.Users()
+    create_user_model.email = create_user.email
+    create_user_model.username = create_user.username
+    create_user_model.first_name = create_user.first_name
+    create_user_model.last_name = create_user.last_name
+    hash_password = get_password_hash(create_user.password)
+    create_user_model.hashed_password = hash_password
+    create_user_model.is_active = True
 
-#
-# def authenticate_user(username: str, password: str, db):
-#     user = db.query(models.Users)\
-#         .filter(models.Users.username == username)\
-#         .first()
-#
-#     if not user:
-#         return False
-#     if not verify_password(password, user.hashed_password):
-#         return False
-#     return user
+    db.add(create_user_model)
+    db.commit()
+    return successful_response(200)
 
+def verify_password(plain_password, hashed_password):
+    return bcrypt_context.verify(plain_password, hashed_password)
+
+# uncomment using command + /
+def authenticate_user(username: str, password: str, db):
+    user = db.query(models.Users)\
+        .filter(models.Users.username == username)\
+        .first()
+
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+@app.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
+                                 db: Session = Depends(get_db)):
+    user = authenticate_user(form_data.username, form_data.password, db)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return "User Validated"
+    #    raise token_exception()
+    # token_expires = timedelta(minutes=20)
+    # token = create_access_token(user.username,
+    #                             user.id,
+    #                             expires_delta=token_expires)
+    # return {"token": token}
 
 # def create_access_token(username: str, user_id: int,
 #                         expires_delta: Optional[timedelta] = None):
@@ -76,32 +108,6 @@ def get_password_hash(password):
 #         raise get_user_exception()
 #
 
-@app.post("/create/user")
-async def create_new_user(create_user: CreateUser, db: Session = Depends(get_db)):
-    create_user_model = models.Users()
-    create_user_model.email = create_user.email
-    create_user_model.username = create_user.username
-    create_user_model.first_name = create_user.first_name
-    create_user_model.last_name = create_user.last_name
-    hash_password = get_password_hash(create_user.password)
-    create_user_model.hashed_password = hash_password
-    create_user_model.is_active = True
-
-    db.add(create_user_model)
-    db.commit()
-
-
-# @app.post("/token")
-# async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
-#                                  db: Session = Depends(get_db)):
-#     user = authenticate_user(form_data.username, form_data.password, db)
-#     if not user:
-#         raise token_exception()
-#     token_expires = timedelta(minutes=20)
-#     token = create_access_token(user.username,
-#                                 user.id,
-#                                 expires_delta=token_expires)
-#     return {"token": token}
 
 
 #Exceptions
@@ -122,7 +128,11 @@ def token_exception():
     )
     return token_exception_response
 
-
+def successful_response(status_code: int):
+    return {
+        'status': status_code,
+        'transaction': 'Successful'
+    }
 
 
 
