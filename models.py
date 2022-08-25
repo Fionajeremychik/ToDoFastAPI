@@ -2,6 +2,8 @@ from sqlalchemy import Boolean, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base  # from database.py
 
+# pip install "passlib[bcrypt]"
+
 class Users(Base):
     __tablename__ = "users"
 
