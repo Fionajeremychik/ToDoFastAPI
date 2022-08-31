@@ -4,11 +4,13 @@ import models
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
-from auth import get_current_user, get_user_exception
+from routers.auth import get_current_user, get_user_exception
+from routers import auth
 
 app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)
+app.include_router(auth.router)
 
 def get_db():
     try:
@@ -40,7 +42,7 @@ async def read_all_by_user(user: dict = Depends(get_current_user),
         .all()
 
 
-@app.get("/todo/{todo_id}")
+@app.get("/todos/{todo_id}")
 async def read_todo(todo_id: int,
                     user: dict = Depends(get_current_user),
                     db: Session = Depends(get_db)):
