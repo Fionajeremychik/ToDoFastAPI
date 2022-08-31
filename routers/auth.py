@@ -31,7 +31,11 @@ models.Base.metadata.create_all(bind=engine)
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
 
 # app = FastAPI()
-router = APIRouter()
+router = APIRouter(
+    prefix='/auth',
+    tags=["auth"],
+    responses={401: {"user": "Not authorized"}}
+)
 
 # @app.get("/")
 # async def create_database():
